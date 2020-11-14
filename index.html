@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Collectors</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.0/knockout-min.js"></script>
+    <script type="text/javascript">
+        function ProfileViewModel() {
+            var self = this;
+            // Not stored in DynamoDB
+            self.icons = {
+                instruments: "fas fa-guitar fa-2x mr-2",
+                books: "fas fa-book fa-2x mr-2",
+                movies: "fas fa-film fa-2x mr-2",
+                comics: "fas fa-book-open fa-2x mr-2",
+                boardgames: "fas fa-dice-d20 fa-2x mr-2"
+            };
+            
+            // Must be handled by API gathered from DynamoDB
+            // Get All
+            // Get Profile
+            self.profilePicture = ko.observable("");
+            self.profileName = ko.observable("Name");
+            self.profileLocation = ko.observable("Somewhere, World");
+            // Get ProfileCollections
+            self.profileCollectionIcons = ko.observableArray([self.icons['instruments'],self.icons['books'],self.icons['movies'],self.icons['comics'],self.icons['boardgames']]);
+            self.profileCollections = ko.observableArray([]);
+            // Get RecentActivity
+            self.recentActivity = ko.observableArray([]);
+            // Get LastAddition
+            self.lastAddition = {};
+            // Get ProfileFriends
+            self.friends  = ko.observableArray([]);
+            
+            // Not stored in DynamoDB
+            self.recentHead = ko.observable()
+            self.bigImage = ko.observable();
+            self.itemAttributes = ko.observable(self.lastAddition.itemData);
+            self.spinnas = ko.observable("");
+            
+
+            self.getAll = function(user) {
+                self.spinnas("visible")
+                if (typeof(user) == "object"){
+                    user = user.uid;
+                };
+                $.getJSON("https://1u9yrh4ye7.execute-api.us-east-1.amazonaws.com/primary/prod/?uid="+user+"&request=all", function(data){
+                    self.profilePicture(data.picture);
+                    self.profileName(data.fullName);
+                    self.profileLocation(data.location);
+                    
+                    self.profileCollectionIcons.removeAll();
+                    if(typeof(data.icons) == 'string'){
+                        data.icons = [data.icons];
+                    };
+                    $.each(data.icons, function(i, val){
+                        self.profileCollectionIcons.push(self.icons[val]);
+                    });
+
+                    self.profileCollections.removeAll();
+                    $.each(data.collections, function(i, val){
+                        if (val['icon'] == 'guitars'){
+                            val['icon'] = 'instruments';
+                        };
+                        val['icon'] = self.icons[val['icon']];
+                        self.profileCollections.push(val);
+                    });
+
+                    self.recentActivity.removeAll();
+                    $.each(data.recentActivity, function(i, val){
+                        if (val['icon'] == 'guitars'){
+                            val['icon'] = 'instruments';
+                        };
+                        val['icon'] = self.icons[val['icon']];
+                        self.recentActivity.push(val);
+                    });
+
+                    tribs = []
+                    for (let [k, v] of Object.entries(data.lastAddition)) {
+                        if ( !['image', 'thumb', 'item_name', 'uid', 'type', 'collection_id', 'order'].includes(k) ) {
+                            k = k.charAt(0).toUpperCase() + k.slice(1)
+                            tribs.push('<b>'+k+':</b> '+v);
+                        };
+                    };
+                    self.bigImage(data.lastAddition.image)
+                    self.itemAttributes(tribs)
+
+                    self.friends.removeAll();
+                    $.each(data.friends, function(i, val){
+                        var fullIcon = []
+                        $.each(val['icons'], function(ci, ic){
+                            fullIcon.push(self.icons[ic]);
+                        });
+                        val['icons'] = fullIcon
+                        self.friends.push(val);
+                    });
+                    self.recentHead("Latest Addition")
+                    self.spinnas("invisible")
+                });
+            };
+
+            loadImageData = function(data) {
+                tribs = []
+                for (let [k, v] of Object.entries(data)) {
+                    if ( !['image', 'thumb', 'item_name', 'uid', 'type', 'collection_id', 'order'].includes(k) ) {
+                        if (typeof(v) == 'string'){
+                            if (v.includes('http')){
+                                v = '<a href="'+v+'">'+v+'</a>';
+                            };
+                        };
+                        if (['title', 'game', 'name'].includes(k)){
+                            self.recentHead(v);
+                        };
+                        k = k.charAt(0).toUpperCase() + k.slice(1)
+                        tribs.push('<b>'+k+':</b> '+v);
+                    };
+                };
+                // self.recentHead("");
+                self.bigImage(data.image);
+                self.itemAttributes(tribs);
+            };
+
+            self.getAll("adam")
+        };
+
+        $(document).ready(function () {
+            ko.applyBindings(new ProfileViewModel());
+        });
+    </script>
+    <style>
+        body {
+            background-color: #181918;
+            color: #EBF5EB;
+            border-color: #BAC2BA;
+        }
+
+        body,
+        html {
+            height: 100%;
+        }
+
+        a, a:hover, a:active, a:visited { 
+            color: #EBF5EB;
+        }
+
+        .custombg {
+            background-color: #EEEEEE;
+        }
+
+
+        .padme {
+            padding-top: 10px;
+            padding-left: 10px;
+        }
+
+        .sitebrand {
+            position:absolute;
+            bottom:5px;
+            right:5px;
+            color:#EEEEEE
+        }
+
+        .loadbox {
+            position:absolute;
+            top:0px;
+            left:0px;
+            height: 100vh;
+            width: 100vw;
+            background-color: rgba(24, 25, 24, 0.9);
+        }
+
+        .listbg {
+            background-color: #181918e5;
+            color: #EBF5EB;
+        }
+
+        .row{
+            width: 100%
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sitebrand">
+        <div class="container-fluid display-3">Collectors</div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-sm-1">
+            <span data-bind="ifnot: profilePicture">
+                <i class="fas fa-meh fa-10x img-fluid ml-4 mt-4"></i>
+            </span>
+            <span data-bind="if: profilePicture">
+                <img data-bind="attr: { src: profilePicture }" } class="rounded padme" style="width:170px;" />
+            </span>
+        </div>
+        <div class="col-sm-4">
+            <div class="container-fluid display-2">
+                <span data-bind="text: profileName"></span>
+            </div>
+            <div class="container-fluid">
+                <p>Location: <span data-bind="text: profileLocation"></span></p>
+                <p>Collections: <span data-bind="foreach: profileCollectionIcons"><i data-bind="class: $data"></i></span></p>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-9">
+            <span class="row">
+                <span class="col-sm-7">
+                    <div class="container-fluid display-4">
+                        Collections
+                    </div>
+                    <div class="container-fluid overflow-auto" style="max-height:35vh;">
+                        <div class="list-group" data-bind="foreach: profileCollections">
+                            <span class="list-group-item list-group-item-action listbg">
+                                <i data-bind="class: icon"></i>
+                                <span data-bind="foreach: items">
+                                    <img data-bind="attr: { src: thumb }, click: loadImageData.bind($data)" class="rounded m-1" width=50px />
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                </span>
+                <span class="col-sm-5">
+                    <div class="container-fluid display-4">
+                        <span data-bind="text: recentHead"></span>
+                    </div>
+                    <div class="container">
+                        <span class="row m-1">
+                            <img class="rounded" style="max-height:35vh;" data-bind="attr: { src: bigImage }"/>
+                        </span>
+                        <span class="row m-1">
+                            <span data-bind="foreach: itemAttributes">
+                                <div data-bind="html: $data" class="text-decoration-none"></div>
+                            </span>
+                        </span>
+                    </div>
+                </span>
+            </span>
+        </div>
+        <div class="col-sm-3">
+            <span class="row">
+                <div class="container display-4 text-right">
+                    Friends
+                </div>
+                <div class="container-fluid">
+                    <div class="list-group" data-bind="foreach: friends">
+                        <span class="row">
+                            <span class="col-sm-4"></span>
+                            <span class="col-sm-8">
+                                <a href="#" data-bind="click: $parent.getAll" class="list-group-item list-group-item-action listbg">
+                                    <span class="row">
+                                        <span class="col-sm-2">
+                                            <img data-bind="attr: { src: picture }" class="rounded" width=50px />
+                                        </span>
+                                        <span class="display-5 col-sm-10 text-right">
+                                            <span data-bind="text: fullName"></span><br />
+                                            <span data-bind="foreach: icons">
+                                                <i data-bind="class: $data"></i>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </a>
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </span>
+            <span class="row mt-4">
+                <div class="container-fluid display-4 text-right">
+                    Recent Activity
+                </div>
+                <div class="container-fluid overflow-auto" style="max-height:30vh;">
+                    <span class="row">
+                        <span class="col-sm-3"></span>
+                        <span class="col-sm-9">
+                            <div class="list-group" data-bind="foreach: recentActivity">
+                                <a href="#" class="list-group-item list-group-item-action listbg">
+                                    <i data-bind="class: icon"></span> <img data-bind="attr: { src: imgurl }" class="rounded m-2" width=50px /></i><span data-bind="text: action"></span><span> </span><span data-bind="text: itemname"></span>
+                                </a>
+                            </div>
+                        </span>
+                    </span>
+                </div>
+            </span>
+        </div>
+    </div>
+    <span data-bind="class: spinnas">
+        <div class="loadbox">
+            <div class="d-flex align-items-center justify-content-center h-100">
+                <div class="d-flex flex-column">
+                        <span class="display-4 col-sm-6">Loading </span>
+                </div>
+                <div class="d-flex flex-column"><span class="spinner-grow display-1"></span></div>
+            </div>
+        </div>
+    </span>
+</body>
+<!--For a good data, call John and Adam -->
+</html>

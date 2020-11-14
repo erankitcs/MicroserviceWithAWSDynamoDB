@@ -1,0 +1,29 @@
+{
+    "picture": "URL",
+    "fullName": "John Hanna",
+    "location": "Washington, USA",
+    "icons": ["comics", "movies"],
+    "collections": {"john_comics": {"icon": "comics", "items": 
+        [
+            {
+                "author": "Katsuhiro Otomo",
+                "collection_id": "john_comics",
+                "image": "https://dynamodblabs.s3.amazonaws.com/collectors/images/john/comics/Akiravol1.jpg",
+                "isbn": "1935429000",
+                "order": "1",
+                "pages": "352",
+                "pencil": "Katsuhiro Otomo",
+                "published date": "October 31 2009",
+                "publisher": "Kodansha Comics",
+                "series": "Akira",
+                "thumb": "https://dynamodblabs.s3.amazonaws.com/collectors/images/john/comics/thumbs/Akiravol1.jpg",
+                "title": "Akira Vol 1",
+                "type": "item"
+            },
+            {}
+        ]
+    }},
+    "recentActivity": [],
+    "lastAddition": {},
+    "friends": []
+}
